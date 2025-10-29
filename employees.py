@@ -1,10 +1,225 @@
 from tkinter import *
 from tkinter import ttk
 from tkcalendar import DateEntry
+from tkinter import messagebox
+import pymysql # pip install pymysql
+
+def connect_database():
+  try:
+    connection=pymysql.connect(host="localhost", user="root", password="@Bach2004")
+    cursor = connection.cursor()
+  except:
+    messagebox.showerror("Error", "Database connectivity issue try again")
+    return None, None
+  return cursor, connection
+
+def create_database_table():
+  cursor, connection= connect_database()
+  cursor.execute("CREATE DATABASE IF NOT EXISTS inventory_system")
+  cursor.execute("USE inventory_system")
+  cursor.execute("CREATE TABLE IF NOT EXISTS employee_data (empid INT PRIMARY KEY, name VARCHAR(100), "
+                "email VARCHAR(100), gender VARCHAR(50), dob VARCHAR(30), contact VARCHAR(30), employment_type VARCHAR(50), "
+                " education VARCHAR(50), word_shift VARCHAR(50), address VARCHAR(100), doj VARCHAR(30), salary VARCHAR(50), usertype VARCHAR(50), "
+                "password VARCHAR(50))")
+
+def treeview_data():
+  cursor, connection = connect_database()
+  if not cursor or not connection:
+    return
+  cursor.execute("use inventory_system")
+  try:
+    cursor.execute("SELECT * from employee_data")
+    employee_records = cursor.fetchall() #để lấy tất cả các hàng (rows) của kết quả đó và trả về dạng danh sách (list) của tuple.
+    employee_treeview.delete(*employee_treeview.get_children())
+    for record in employee_records:
+      employee_treeview.insert("", END, values=record)
+  except Exception as e:
+    messagebox.showerror("Error", f"Error due to {e}")
+  finally:
+    cursor.close()
+    connection.close()
+    
+def select_data(event,empid_entry, name_entry, email_entry,
+                dob_date_entry,gender_combobox, contact_entry, 
+                employment_type_combobox,education_combobox, work_shift_combobox,
+                address_text, doj_date_entry, salary_entry, usertype_combobox, password_entry):
+  index = employee_treeview.selection()
+  # print(index)
+  content = employee_treeview.item(index)
+  # print(content)
+  clear_fields(empid_entry, name_entry, email_entry,
+              dob_date_entry,gender_combobox, contact_entry, 
+              employment_type_combobox,education_combobox, work_shift_combobox,
+              address_text, doj_date_entry, salary_entry, usertype_combobox, password_entry, False)
+  row = content['values']
+  empid_entry.insert(0, row[0])
+  name_entry.insert(0, row[1])
+  email_entry.insert(0, row[2])
+  gender_combobox.set(row[3])
+  dob_date_entry.set_date(row[4])
+  contact_entry.insert(0, row[5])
+  employment_type_combobox.set(row[6])
+  education_combobox.set(row[7])
+  work_shift_combobox.set(row[8])
+  address_text.insert(1.0, row[9])
+  doj_date_entry.set_date(row[10])
+  salary_entry.insert(0, row[11])
+  usertype_combobox.set(row[12])
+  password_entry.insert(0,row[13])
+  
+def update_employee(empid, name, email, gender, dob, contact, employment_type,education, word_shift, address, doj, salary, user_type, password):
+  selected = employee_treeview.selection()
+  if not selected:
+    messagebox.showerror("Error", "No row is selected")
+  else:
+    cursor, connection = connect_database()
+    if not cursor or not connection:
+      return
+    try:
+      cursor.execute('use inventory_system') 
+      cursor.execute('SELECT * from employee_data WHERE empid=%s', (empid,))
+      curent_data = cursor.fetchone()
+      curent_data = curent_data[1:]
+
+      address=address.strip()
+      new_data = (name, email, gender, dob, contact, employment_type,education, word_shift, address, doj, salary, user_type, password)
+  
+      if curent_data==new_data:
+        messagebox.showinfo("Information", "No changes detected")
+        return
+      
+      cursor.execute('UPDATE employee_data SET name=%s, email=%s, gender=%s, dob=%s, contact=%s, employment_type=%s,education=%s,'
+                    'word_shift=%s, address=%s, doj=%s, salary=%s, usertype=%s, password=%s WHERE empid=%s',
+                    (name, email, gender, dob, contact, employment_type,education, word_shift, address, doj, salary, user_type, password, empid))
+      connection.commit()
+      treeview_data()
+      messagebox.showinfo('Success', 'Data is update successfully')
+      
+    except Exception as e:
+      messagebox.showerror("Error", f"Error due to {e}")
+    finally:
+      cursor.close()
+      connection.close()
+    
+
+def add_employee(empid, name, email, gender, dob, contact, employment_type,education, word_shift, address, doj, salary, user_type, password):
+  if (empid=="" or name=="" or email=="" or gender=="Select Gender" or contact=="" or employment_type=="Select type" or
+      education=="Select Education" or word_shift=="Select Shift" or address == '' or 
+      user_type=="Select User Type" or password==""):
+    
+    messagebox.showerror("Error", "All fields are required")
+    
+  else: 
+    cursor, connection=connect_database()
+    if not cursor or not connection:
+      return
+    cursor.execute("use inventory_system")
+    try: 
+      cursor.execute("SELECT empid from employee_data WHERE empid=%s", (empid))
+      if cursor.fetchone():
+        messagebox.showerror("Error", "Id already exists")
+        return
+      address=address.strip()
+      cursor.execute("INSERT INTO employee_data VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",(empid, name, email, gender, dob, contact, employment_type,education, word_shift, address, doj, salary, 
+                                                                                                    user_type, password))
+      connection.commit() #Lưu lại xác nhận
+      treeview_data()
+      messagebox.showinfo("Success", "Data is inserted successfully")
+    except Exception as e:
+      messagebox.showerror("Error", f"Error due to {e}")
+    finally:
+      cursor.close()
+      connection.close()
+      
+    
+def clear_fields(empid_entry, name_entry, email_entry,
+                dob_date_entry,gender_combobox, contact_entry, 
+                employment_type_combobox,education_combobox, work_shift_combobox, 
+                address_text, doj_date_entry, salary_entry, usertype_combobox, password_entry, check):
+  empid_entry.delete(0, END)
+  name_entry.delete(0, END)
+  email_entry.delete(0, END)
+  from datetime import date
+  dob_date_entry.set_date(date.today())
+  gender_combobox.set("Select Gender")
+  contact_entry.delete(0, END)
+  employment_type_combobox.set("Select Type")
+  education_combobox.set("Select Education")
+  work_shift_combobox.set("Select Work Shift")
+  address_text.delete(1.0, END)
+  doj_date_entry.set_date(date.today())
+  salary_entry.delete(0, END)
+  usertype_combobox.set("Select User Type")
+  password_entry.delete(0, END)
+  
+  if check:
+    employee_treeview.selection_remove(employee_treeview.selection())
+
+def delete_employee(empid, ):
+  selected = employee_treeview.selection()
+  if not selected:
+    messagebox.showerror("Error", "No row is selected")
+  else:
+    result=messagebox.askyesno('Confirm', 'Do you want to delete the record')
+    if result:
+      cursor, connection = connect_database()
+      if not cursor or not connection:
+        return
+      try:
+        cursor.execute('use inventory_system')
+        cursor.execute('DELETE FROM employee_data WHERE empid=%s', (empid,))
+        connection.commit()
+        treeview_data()
+        messagebox.showinfo('Success', 'Record is deleted')
+      except Exception as e:
+          messagebox.showerror("Error", f"Error due to {e}")
+      finally:
+        cursor.close()
+        connection.close()
+    
+def search_employee(search_option, value):
+  if search_option == "Search By":
+    messagebox.showerror('Error', 'No option is selected')
+  elif value=='':
+    messagebox.showerror('Error', 'Enter the value to search')
+  else:
+    # search_option=search_option.replace(' ','_')
+    option_map = {
+            'EmpId': 'empid',
+            'Name': 'name',
+            'Email': 'email',
+            'Employment Type': 'employment_type',
+            'Education': 'education',
+            'Work Shift': 'word_shift'
+        }
+    search_option = option_map.get(search_option)
+    cursor, connection = connect_database()
+    if not cursor or not connection:
+      return
+    try:
+      cursor.execute('use inventory_system')
+      cursor.execute(f"SELECT * FROM employee_data WHERE {search_option} LIKE %s", (f"%{value}%",))
+
+      records=cursor.fetchall()
+      
+      employee_treeview.delete(*employee_treeview.get_children()) #Lấy tuple chứa id
+      for record in records:
+        employee_treeview.insert('', END, value=record)
+    except Exception as e:
+      messagebox.showerror("Error", f"Error due to {e}")
+    finally:
+      cursor.close()
+      connection.close()
+
+def show_all(search_entry, search_combobox):
+  treeview_data()
+  search_entry.delete(0, END)
+  search_combobox.set('Search By')
+  
 
 #Functionality Part
 def employee_form(window):
-  global back_image #Biến toàn cục để tránh bị thu khi hàm kết thúc
+  global back_image, employee_treeview #Biến toàn cục để tránh bị thu khi hàm kết thúc
   employee_frame=Frame(window, width=1070, height=567, bg="white")
   employee_frame.place(x=200, y=100)
   heading_label = Label(employee_frame, text="Manage Employee Details", font=("Times New Roman", 16, "bold"), bg="#0f4d7d", fg="white")
@@ -19,17 +234,17 @@ def employee_form(window):
   
   search_frame = Frame(top_frame, bg="white")
   search_frame.pack()
-  search_combobox=ttk.Combobox(search_frame, values=('Id','Name', 'Email'), font=("Times New Roman", 12), state="readonly", justify=CENTER)
+  search_combobox=ttk.Combobox(search_frame, values=('EmpId','Name', 'Email', 'Employment Type', 'Education', 'Work Shift'), font=("Times New Roman", 12), state="readonly", justify=CENTER)
   search_combobox.set("Search By")
   search_combobox.grid(row=0, column=0, padx=20)
   
   search_entry=Entry(search_frame, font=("Times New Roman", 12),bg="lightyellow")
   search_entry.grid(row=0, column=1)
   
-  search_button=Button(search_frame, text="Search", font=("Times New Roman", 12), width=10, cursor="hand2", fg="white", bg="#0f4d7d")
+  search_button=Button(search_frame, text="Search", font=("Times New Roman", 12), width=10, cursor="hand2", fg="white", bg="#0f4d7d", command=lambda: search_employee(search_combobox.get(), search_entry.get()))
   search_button.grid(row=0, column=2, padx=20)
   
-  show_button=Button(search_frame, text="Show All", font=("Times New Roman", 12), width=10, cursor="hand2", fg="white", bg="#0f4d7d")
+  show_button=Button(search_frame, text="Show All", font=("Times New Roman", 12), width=10, cursor="hand2", fg="white", bg="#0f4d7d", command=lambda:show_all(search_entry, search_combobox))
   show_button.grid(row=0, column=3)
   
   employee_treeview = ttk.Treeview(top_frame, columns=("empid", "name", "email", "gender", "dob", "contact",
@@ -78,7 +293,9 @@ def employee_form(window):
   
   # Không cho người dùng kéo dãn cột
   employee_treeview.bind('<Button-1>', lambda e: 'break' if employee_treeview.identify_region(e.x, e.y) == "separator" else None)
-
+  
+  treeview_data()
+  
   detail_frame = Frame(employee_frame, bg="white")
   detail_frame.place(x=20, y=280, relwidth=1)
   
@@ -137,7 +354,7 @@ def employee_form(window):
   address_text = Text(detail_frame, font=("Times New Roman", 12), width=20, height=3, bg="lightyellow")
   address_text.grid(row=3, column=1)
   
-  doj_label = Label(detail_frame, text="Date of Birth", font=("Times New Roman", 12), bg="white")
+  doj_label = Label(detail_frame, text="Date of Joining", font=("Times New Roman", 12), bg="white")
   doj_label.grid(row=3, column=2, padx=20, pady=10, sticky="w")
   doj_date_entry = DateEntry(detail_frame, width=18, font=("Times New Roman", 12), state="readonly", justify=CENTER, date_pattern="dd-mm-yyyy")
   doj_date_entry.grid(row=3, column=3)
@@ -161,15 +378,28 @@ def employee_form(window):
   button_frame = Frame(employee_frame, bg="white")
   button_frame.place(x=200, y=530)
   
-  add_button=Button(button_frame, text="Add", font=("Times New Roman", 12), width=10, cursor="hand2", fg="white", bg="#0f4d7d")
+  add_button=Button(button_frame, text="Add", font=("Times New Roman", 12), width=10, cursor="hand2", fg="white", bg="#0f4d7d", command=lambda: add_employee(empid_entry.get(), name_entry.get(), email_entry.get(), gender_combobox.get(), 
+                                                                                                                                                      dob_date_entry.get(), contact_entry.get(), employment_type_combobox.get(), 
+                                                                                                                                                      education_combobox.get(), work_shift_combobox.get(), address_text.get(1.0, END),
+                                                                                                                                                      doj_date_entry.get(), salary_entry.get(), usertype_combobox.get(), password_entry.get()))
   add_button.grid(row=0, column=0, padx=20)
   
-  update_button=Button(button_frame, text="Update", font=("Times New Roman", 12), width=10, cursor="hand2", fg="white", bg="#0f4d7d")
+  update_button=Button(button_frame, text="Update", font=("Times New Roman", 12), width=10, cursor="hand2", fg="white", bg="#0f4d7d", command=lambda:update_employee(empid_entry.get(), name_entry.get(), email_entry.get(), gender_combobox.get(), 
+                                                                                                                                                      dob_date_entry.get(), contact_entry.get(), employment_type_combobox.get(), 
+                                                                                                                                                      education_combobox.get(), work_shift_combobox.get(), address_text.get(1.0, END),
+                                                                                                                                                      doj_date_entry.get(), salary_entry.get(), usertype_combobox.get(), password_entry.get()))
   update_button.grid(row=0, column=1, padx=20)
   
-  delete_button=Button(button_frame, text="Delete", font=("Times New Roman", 12), width=10, cursor="hand2", fg="white", bg="#0f4d7d")
+  delete_button=Button(button_frame, text="Delete", font=("Times New Roman", 12), width=10, cursor="hand2", fg="white", bg="#0f4d7d", command=lambda:delete_employee(empid_entry.get(), ))
   delete_button.grid(row=0, column=2, padx=20)
   
-  clear_button=Button(button_frame, text="Clear", font=("Times New Roman", 12), width=10, cursor="hand2", fg="white", bg="#0f4d7d")
+  clear_button=Button(button_frame, text="Clear", font=("Times New Roman", 12), width=10, cursor="hand2", fg="white", bg="#0f4d7d", command=lambda:clear_fields(empid_entry, name_entry, email_entry,
+                                                                                                                                                                  dob_date_entry,gender_combobox, contact_entry, 
+                                                                                                                                                                  employment_type_combobox,education_combobox, work_shift_combobox,
+                                                                                                                                                                  address_text, doj_date_entry, salary_entry, usertype_combobox, password_entry, True))
   clear_button.grid(row=0, column=3, padx=20)
-  
+  employee_treeview.bind("<ButtonRelease-1>", lambda event:select_data(event,empid_entry, name_entry, email_entry,
+                                                          dob_date_entry,gender_combobox, contact_entry, 
+                                                          employment_type_combobox,education_combobox, work_shift_combobox,
+                                                          address_text, doj_date_entry, salary_entry, usertype_combobox, password_entry))
+  create_database_table()

@@ -1,7 +1,6 @@
 from tkinter import *
 from tkinter import ttk
 from tkcalendar import DateEntry #Nhớ pip install tkcalendar
-import pymysql # pip install pymysql
 from employees import employee_form
 
 #GUI Part

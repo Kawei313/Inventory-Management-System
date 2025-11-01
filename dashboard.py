@@ -2,6 +2,9 @@ from tkinter import *
 from tkinter import ttk
 from tkcalendar import DateEntry #Nhớ pip install tkcalendar
 from employees import employee_form
+from supplier import supplier_form
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
 
 #GUI Part
 window = Tk()
@@ -36,7 +39,7 @@ employee_button = Button(leftFrame,image=employee_icon, compound=LEFT, text=" Em
 employee_button.pack(fill=X)
 
 supplier_icon=PhotoImage(file=r"helpers/icons/supplier.png")
-supplier_button = Button(leftFrame,image=supplier_icon, compound=LEFT, text="  Supplier", font=("Times New Roman", 20, "bold"), cursor="hand2",anchor="w")
+supplier_button = Button(leftFrame,image=supplier_icon, compound=LEFT, text="  Supplier", font=("Times New Roman", 20, "bold"), cursor="hand2",anchor="w", padx=10, command=lambda: supplier_form(window))
 supplier_button.pack(fill=X)
 
 category_icon=PhotoImage(file=r"helpers/icons/category.png")

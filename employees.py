@@ -21,6 +21,7 @@ def create_database_table():
                 "email VARCHAR(100), gender VARCHAR(50), dob VARCHAR(30), contact VARCHAR(30), employment_type VARCHAR(50), "
                 " education VARCHAR(50), word_shift VARCHAR(50), address VARCHAR(100), doj VARCHAR(30), salary VARCHAR(50), usertype VARCHAR(50), "
                 "password VARCHAR(50))")
+  
 
 def treeview_data():
   cursor, connection = connect_database()
@@ -390,8 +391,7 @@ def employee_form(window):
                                                                                                                                                       doj_date_entry.get(), salary_entry.get(), usertype_combobox.get(), password_entry.get()))
   update_button.grid(row=0, column=1, padx=20)
   
-  delete_button=Button(button_frame, text="Delete", font=("Times New Roman", 12), width=10, cursor="hand2", fg="white", bg="#0f4d7d", command=lambda:delete_employee(empid_entry.get(), ))
-  delete_button.grid(row=0, column=2, padx=20)
+
   
   clear_button=Button(button_frame, text="Clear", font=("Times New Roman", 12), width=10, cursor="hand2", fg="white", bg="#0f4d7d", command=lambda:clear_fields(empid_entry, name_entry, email_entry,
                                                                                                                                                                   dob_date_entry,gender_combobox, contact_entry, 

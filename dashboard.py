@@ -3,6 +3,7 @@ from tkinter import ttk
 from tkcalendar import DateEntry #Nhớ pip install tkcalendar
 from employees import employee_form
 from supplier import supplier_form
+from products import product_form
 import sys
 sys.stdout.reconfigure(encoding='utf-8')
 
@@ -10,7 +11,7 @@ sys.stdout.reconfigure(encoding='utf-8')
 window = Tk()
 window.title("Dashboard")
 window.geometry("1270x668")
-window.resizable(0,0) #Không cho phép người dùng thay đổi kích thước của sổ
+# window.resizable(0,0) #Không cho phép người dùng thay đổi kích thước của sổ
 window.config(bg="white")
 
 bg_image=PhotoImage(file=r"helpers/icons/inventory.png")
@@ -47,7 +48,7 @@ category_button = Button(leftFrame,image=category_icon, compound=LEFT, text="  C
 category_button.pack(fill=X)
 
 product_icon=PhotoImage(file=r"helpers/icons/product.png")
-product_button = Button(leftFrame,image=product_icon, compound=LEFT, text="  Product", font=("Times New Roman", 20, "bold"), cursor="hand2",anchor="w")
+product_button = Button(leftFrame,image=product_icon, compound=LEFT, text="  Product", font=("Times New Roman", 20, "bold"), cursor="hand2",anchor="w",command=lambda: product_form(window))
 product_button.pack(fill=X)
 
 sales_icon=PhotoImage(file=r"helpers/icons/sales.png")

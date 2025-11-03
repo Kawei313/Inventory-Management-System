@@ -1,16 +1,17 @@
+# dashboard.py (đã bổ sung nút Tax)
 from tkinter import *
 from tkinter import ttk
-from tkcalendar import DateEntry #Nhớ pip install tkcalendar
+from tkcalendar import DateEntry
 from employees import employee_form
 from supplier import supplier_form
+from tax import tax_form
 import sys
 sys.stdout.reconfigure(encoding='utf-8')
 
-#GUI Part
 window = Tk()
 window.title("Dashboard")
 window.geometry("1270x668")
-window.resizable(0,0) #Không cho phép người dùng thay đổi kích thước của sổ
+window.resizable(0,0)
 window.config(bg="white")
 
 bg_image=PhotoImage(file=r"helpers/icons/inventory.png")
@@ -28,7 +29,6 @@ leftFrame.place(x=0,y=102, width=200, height=555)
 
 logoImage=PhotoImage(file=r"helpers/icons/logo.png")
 imageLabel = Label(leftFrame, image=logoImage)
-imageLabel.grid(row=0, column=0)
 imageLabel.pack()
 
 menuLabel = Label(leftFrame, text="Menu", font=("Times New Roman", 20, "bold"), bg="#009688")
@@ -54,15 +54,18 @@ sales_icon=PhotoImage(file=r"helpers/icons/sales.png")
 sales_button = Button(leftFrame,image=sales_icon, compound=LEFT, text="  Sales", font=("Times New Roman", 20, "bold"), cursor="hand2",anchor="w")
 sales_button.pack(fill=X)
 
+tax_icon=PhotoImage(file=r"helpers/icons/tax.png")
+tax_button = Button(leftFrame,image=tax_icon, compound=LEFT, text="  Tax", font=("Times New Roman", 20, "bold"), cursor="hand2",anchor="w", padx=10, command=lambda:tax_form(window))
+tax_button.pack(fill=X)
+
 exit_icon=PhotoImage(file=r"helpers/icons/exit.png")
 exit_button = Button(leftFrame,image=exit_icon, compound=LEFT, text="  Exit", font=("Times New Roman", 20, "bold"), cursor="hand2",anchor="w")
 exit_button.pack(fill=X)
 
-#total employee
 emp_frame = Frame(window, bg="#2C3E50", bd=3, relief=RIDGE)
 emp_frame.place(x=400, y=125, height=170, width=280)
 total_emp_icon=PhotoImage(file=r"helpers/icons/total_employee.png")
-total_emp_icon_label = Label(emp_frame, image=total_emp_icon, bg="#2C3E50") 
+total_emp_icon_label = Label(emp_frame, image=total_emp_icon, bg="#2C3E50")
 total_emp_icon_label.pack()
 
 total_emp_label = Label(emp_frame, text="Total Employees", font=("Times New Roman", 15, "bold"), bg="#2C3E50", fg="white")
@@ -71,11 +74,10 @@ total_emp_label.pack()
 total_emp_count_label = Label(emp_frame, text="0", font=("Times New Roman", 30, "bold"), bg="#2C3E50", fg="white")
 total_emp_count_label.pack()
 
-#total supplier
 sup_frame = Frame(window, bg="#8E44AD", bd=3, relief=RIDGE)
 sup_frame.place(x=800, y=125, height=170, width=280)
 total_sup_icon=PhotoImage(file=r"helpers/icons/total_sup.png")
-total_sup_icon_label = Label(sup_frame, image=total_sup_icon, bg="#8E44AD") 
+total_sup_icon_label = Label(sup_frame, image=total_sup_icon, bg="#8E44AD")
 total_sup_icon_label.pack()
 
 total_sup_label = Label(sup_frame, text="Total Suppliers", font=("Times New Roman", 15, "bold"), bg="#8E44AD", fg="white")
@@ -84,11 +86,10 @@ total_sup_label.pack()
 total_sup_count_label = Label(sup_frame, text="0", font=("Times New Roman", 30, "bold"), bg="#8E44AD", fg="white")
 total_sup_count_label.pack()
 
-#total category
 cat_frame = Frame(window, bg="#27AE60", bd=3, relief=RIDGE)
 cat_frame.place(x=400, y=310, height=170, width=280)
 total_cat_icon=PhotoImage(file=r"helpers/icons/total_cat.png")
-total_cat_icon_label = Label(cat_frame, image=total_cat_icon, bg="#27AE60") 
+total_cat_icon_label = Label(cat_frame, image=total_cat_icon, bg="#27AE60")
 total_cat_icon_label.pack()
 
 total_cat_label = Label(cat_frame, text="Total Categories", font=("Times New Roman", 15, "bold"), bg="#27AE60", fg="white")
@@ -97,11 +98,10 @@ total_cat_label.pack()
 total_cat_count_label = Label(cat_frame, text="0", font=("Times New Roman", 30, "bold"), bg="#27AE60", fg="white")
 total_cat_count_label.pack()
 
-#total product
 prod_frame = Frame(window, bg="#E74C3C", bd=3, relief=RIDGE)
 prod_frame.place(x=800, y=310, height=170, width=280)
 total_prod_icon=PhotoImage(file=r"helpers/icons/total_prod.png")
-total_prod_icon_label = Label(prod_frame, image=total_prod_icon, bg="#E74C3C") 
+total_prod_icon_label = Label(prod_frame, image=total_prod_icon, bg="#E74C3C")
 total_prod_icon_label.pack()
 
 total_prod_label = Label(prod_frame, text="Total Products", font=("Times New Roman", 15, "bold"), bg="#E74C3C", fg="white")
@@ -110,12 +110,10 @@ total_prod_label.pack()
 total_prod_count_label = Label(prod_frame, text="0", font=("Times New Roman", 30, "bold"), bg="#E74C3C", fg="white")
 total_prod_count_label.pack()
 
-
-#total sales
 sales_frame = Frame(window, bg="#6D3CE7", bd=3, relief=RIDGE)
 sales_frame.place(x=600, y=495, height=170, width=280)
 total_sales_icon=PhotoImage(file=r"helpers/icons/total_sales.png")
-total_sales_icon_label = Label(sales_frame, image=total_sales_icon, bg="#6D3CE7") 
+total_sales_icon_label = Label(sales_frame, image=total_sales_icon, bg="#6D3CE7")
 total_sales_icon_label.pack(pady=10)
 
 total_sales_label = Label(sales_frame, text="Total Sales", font=("Times New Roman", 15, "bold"), bg="#6D3CE7", fg="white")
@@ -125,4 +123,3 @@ total_sales_count_label = Label(sales_frame, text="0", font=("Times New Roman", 
 total_sales_count_label.pack()
 
 window.mainloop()
-

@@ -1,11 +1,10 @@
+# sales.py (hoặc file chính chạy bán hàng)
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
 import random
 import os
-import mysql.connector
-from mysql.connector import Error
-
+from employees import connect_database  # <-- Dùng hàm connect_database từ employees.py
 
 class InventoryManagementSystem:
     def __init__(self, root):
@@ -14,62 +13,75 @@ class InventoryManagementSystem:
         self.root.geometry("1600x900")
         self.root.configure(bg="#1e3a5f")
 
-        # DB + Data
-        self.connection = self.connect_to_db()
+        # Data
         self.products = self.load_products_from_db()
         self.cart = []
         self.bill_no = None
         self.customer_name = ""
         self.customer_contact = ""
         self.bill_text = ""
+        self.tax_rate = self.get_current_tax_rate()  # Lấy thuế từ DB
 
         # Giao diện
         self.create_header()
         self.create_main_layout()
 
     # ================================================
-    # 1. KẾT NỐI DB
-    # ================================================
-    def connect_to_db(self):
-        try:
-            conn = mysql.connector.connect(
-                host='localhost',
-                database='inventory_system',
-                user='root',          # THAY USER CỦA BẠN
-                password='123456'   # THAY PASSWORD
-            )
-            if conn.is_connected():
-                print("Kết nối MySQL thành công!")
-            return conn
-        except Error as e:
-            messagebox.showerror("DB Error", f"Không kết nối được DB:\n{e}")
-            return None
-
-    # ================================================
-    # 2. LẤY SẢN PHẨM (KHÔNG CÓ discount)
+    # 1. LẤY SẢN PHẨM TỪ DB
     # ================================================
     def load_products_from_db(self):
-        if not self.connection or not self.connection.is_connected():
+        cursor, conn = connect_database()
+        if not cursor:
             return []
 
         try:
-            cur = self.connection.cursor(dictionary=True)
+            cursor.execute("USE inventory_system")
             sql = """
                 SELECT id, name, price
                 FROM product_data 
                 WHERE status = 'In Stock'
                 ORDER BY name
             """
-            cur.execute(sql)
-            rows = cur.fetchall()
-            cur.close()
-            for r in rows:
-                r['price'] = float(r['price'])
-                r['discount'] = 0  # Không có discount ở đây
-            return rows
-        except Error as e:
+            cursor.execute(sql)
+            rows = cursor.fetchall()
+            products = []
+            for row in rows:
+                products.append({
+                    'id': row[0],
+                    'name': row[1],
+                    'price': float(row[2]),
+                    'discount': 0
+                })
+            return products
+        except Exception as e:
             messagebox.showerror("Query Error", f"Lỗi lấy sản phẩm:\n{e}")
             return []
+        finally:
+            cursor.close()
+            conn.close()
+
+    # ================================================
+    # 2. LẤY THUẾ HIỆN TẠI TỪ DB
+    # ================================================
+    def get_current_tax_rate(self):
+        cursor, conn = connect_database()
+        if not cursor:
+            return 0.0
+        try:
+            cursor.execute("USE inventory_system")
+            cursor.execute("""
+                SELECT tax_rate FROM tax_data 
+                ORDER BY effective_date DESC, id DESC 
+                LIMIT 1
+            """)
+            row = cursor.fetchone()
+            return float(row[0]) if row else 0.0
+        except Exception as e:
+            print(f"Lỗi lấy thuế: {e}")
+            return 0.0
+        finally:
+            cursor.close()
+            conn.close()
 
     # ================================================
     # 3. HEADER
@@ -298,10 +310,13 @@ class InventoryManagementSystem:
         self.bill_amount_val = tk.Label(self.bill_amount_box, text="0.0", font=("Arial", 14, "bold"), bg="#4a6c8c", fg="white")
         self.bill_amount_val.pack()
 
-        tax_box = tk.Label(sum_fr, text="10.0%", font=("Arial", 14, "bold"), bg="#4a6c8c", fg="white", width=12, height=2, relief=tk.RAISED)
-        tax_box.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=3)
-        tk.Label(tax_box, text="Tax", font=("Arial", 10, "bold"), bg="#4a6c8c", fg="white").pack()
-        tk.Label(tax_box, text="10.0%", font=("Arial", 14, "bold"), bg="#4a6c8c", fg="white").pack()
+        # Hiển thị thuế từ DB
+        tax_text = f"{self.tax_rate:.2f}%" if self.tax_rate > 0 else "0.00%"
+        self.tax_box = tk.Label(sum_fr, text=tax_text, font=("Arial", 14, "bold"), bg="#4a6c8c", fg="white", width=12, height=2, relief=tk.RAISED)
+        self.tax_box.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=3)
+        tk.Label(self.tax_box, text="Tax", font=("Arial", 10, "bold"), bg="#4a6c8c", fg="white").pack()
+        self.tax_val_label = tk.Label(self.tax_box, text=tax_text, font=("Arial", 14, "bold"), bg="#4a6c8c", fg="white")
+        self.tax_val_label.pack()
 
         self.net_pay_box = tk.Label(sum_fr, text="0.0", font=("Arial", 14, "bold"), bg="#4a6c8c", fg="white", width=12, height=2, relief=tk.RAISED)
         self.net_pay_box.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=3)
@@ -321,7 +336,7 @@ class InventoryManagementSystem:
         self.bill_text_area.pack_forget()
 
     # ================================================
-    # 8. CART & BILL
+    # 8. CART & BILL LOGIC
     # ================================================
     def calc_click(self, val):
         cur = self.calc_display.get()
@@ -398,41 +413,47 @@ class InventoryManagementSystem:
         for i in self.cart_tree.get_children():
             self.cart_tree.delete(i)
         total = sum(c["final_price"] for c in self.cart)
-        tax = total * 0.1
-        net = total + tax
+        tax_amount = total * (self.tax_rate / 100)
+        net = total + tax_amount
         for c in self.cart:
             self.cart_tree.insert("", tk.END, values=(c["id"], c["name"], f"₹{c['final_price']:.2f}"))
         self.cart_total_label.config(text=f"Total Products: {len(self.cart)}")
         self.bill_amount_val.config(text=f"{total:.2f}")
+        self.tax_val_label.config(text=f"{self.tax_rate:.2f}%")
         self.net_pay_val.config(text=f"{net:.2f}")
 
     def save_bill_to_db(self):
         if not self.cart: return
+        cursor, conn = connect_database()
+        if not cursor: return
         try:
-            cur = self.connection.cursor()
+            cursor.execute("USE inventory_system")
             total = sum(c["final_price"] for c in self.cart)
-            tax = total * 0.1
-            net = total + tax
+            tax_amount = total * (self.tax_rate / 100)
+            net = total + tax_amount
 
-            # sales_data
-            cur.execute("""
+            # Insert into sales_data
+            cursor.execute("""
                 INSERT INTO sales_data (invoice_no, customer_name, customer_contact, total_amount, discount, tax, net_pay)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """, (self.bill_no, self.customer_name or None, self.customer_contact or None, total, 0, tax, net))
+            """, (self.bill_no, self.customer_name or None, self.customer_contact or None, total, 0, tax_amount, net))
 
-            # sales_items + update stock
+            # Insert items + update stock
             for item in self.cart:
-                cur.execute("""
+                cursor.execute("""
                     INSERT INTO sales_items (invoice_no, product_name, quantity, price, discount, final_price)
                     VALUES (%s, %s, %s, %s, %s, %s)
                 """, (self.bill_no, item["name"], item["qty"], item["price"], 0, item["final_price"]))
-                cur.execute("UPDATE product_data SET quantity = quantity - %s WHERE id = %s", (item["qty"], item["id"]))
+                cursor.execute("UPDATE product_data SET quantity = quantity - %s WHERE id = %s", (item["qty"], item["id"]))
 
-            self.connection.commit()
-            cur.close()
-        except Error as e:
-            self.connection.rollback()
+            conn.commit()
+            messagebox.showinfo("Success", f"Bill #{self.bill_no} saved to DB!")
+        except Exception as e:
+            conn.rollback()
             messagebox.showerror("DB Error", f"Lỗi lưu bill:\n{e}")
+        finally:
+            cursor.close()
+            conn.close()
 
     def generate_bill(self):
         if not self.cart:
@@ -444,8 +465,8 @@ class InventoryManagementSystem:
         self.bill_no = random.randint(100000, 999999)
 
         total = sum(c["final_price"] for c in self.cart)
-        tax = total * 0.1
-        net = total + tax
+        tax_amount = total * (self.tax_rate / 100)
+        net = total + tax_amount
 
         lines = [
             "StockApp-Inventory", "Phone: 7905112734, Lucknow",
@@ -462,7 +483,7 @@ class InventoryManagementSystem:
         lines.extend([
             "-" * 50,
             f"{'Total':>34} ₹{total:>10.2f}",
-            f"{'Tax 10%':>34} ₹{tax:>10.2f}",
+            f"{'Tax ' + f'{self.tax_rate:.2f}%':>29} ₹{tax_amount:>10.2f}",
             f"{'Net Pay':>34} ₹{net:>10.2f}",
             "-" * 50
         ])
@@ -480,7 +501,6 @@ class InventoryManagementSystem:
             f.write(self.bill_text)
 
         self.save_bill_to_db()
-        messagebox.showinfo("Success", f"Bill #{self.bill_no} saved to file & DB!")
 
     def print_bill(self):
         if not self.bill_no:

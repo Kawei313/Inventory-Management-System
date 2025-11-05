@@ -1,311 +1,350 @@
-import tkinter as tk
-from tkinter import ttk, messagebox
-import mysql.connector  # <-- Thêm thư viện CSDL
+# category.py
+from tkinter import *
+from tkinter import ttk
+from tkinter import messagebox
+from employees import connect_database
 
-# --- 1. CẤU HÌNH KẾT NỐI (SỬA TẠI ĐÂY) ---
-DB_HOST = "localhost"
-DB_USER = "root"
-DB_PASS = ""  # <-- ĐIỀN MẬT KHẨU MYSQL CỦA BẠN VÀO ĐÂY
-DB_NAME = "inventory_system"  # Tên CSDL của dự án
+category_frame = None
+category_treeview = None
+id_entry = None
+name_entry = None
+description_text = None
 
 
-class Category:
-    def __init__(self, root):
-        self.root = root
-        self.var_id = tk.StringVar()
-        self.var_name = tk.StringVar()
+def create_category_table():
+    """Tạo bảng category nếu chưa tồn tại"""
+    cursor, conn = connect_database()
+    if not cursor:
+        return
+    try:
+        cursor.execute("CREATE DATABASE IF NOT EXISTS inventory_system")
+        cursor.execute("USE inventory_system")
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS category (
+                id INT PRIMARY KEY,
+                name VARCHAR(100) NOT NULL,
+                description TEXT
+            )
+        """)
+        conn.commit()
+    except Exception as e:
+        messagebox.showerror("Lỗi", f"Không thể tạo bảng: {e}")
+    finally:
+        cursor.close()
+        conn.close()
 
-        self._setup_styles()
-        self._build_ui()
 
-        # --- THAY ĐỔI: Chuyển sang CSDL ---
-        self._setup_database()  # Tự động tạo DB và Bảng
-        self._load_data()  # Tải dữ liệu từ CSDL
+def treeview_data():
+    """Load dữ liệu từ database lên treeview"""
+    global category_treeview
+    cursor, conn = connect_database()
+    if not cursor:
+        return
+    try:
+        cursor.execute("USE inventory_system")
+        cursor.execute("SELECT * FROM category ORDER BY id")
+        rows = cursor.fetchall()
+        category_treeview.delete(*category_treeview.get_children())
+        for row in rows:
+            category_treeview.insert("", END, values=row)
+    except Exception as e:
+        messagebox.showerror("Lỗi", f"Không thể tải dữ liệu: {e}")
+    finally:
+        cursor.close()
+        conn.close()
 
-    # -------------------- STYLE -------------------- #
-    def _setup_styles(self):
-        style = ttk.Style()
-        style.configure("TFrame", background="white")
-        style.configure("TLabel", background="white", font=("Arial", 12))
-        style.configure("TEntry", font=("Arial", 12))
-        style.configure("Treeview.Heading", font=("Arial", 12, "bold"))
-        style.configure("Treeview", font=("Arial", 11), rowheight=28)
-        style.map("Treeview", background=[('selected', '#0078D7')], foreground=[('selected', 'white')])
 
-    # -------------------- UI (Giữ nguyên code của bạn) -------------------- #
-    def _build_ui(self):
-        self.root.columnconfigure(0, weight=1)
-        self.root.rowconfigure(0, weight=1)
+def select_data(event):
+    """Chọn dữ liệu từ treeview để hiển thị lên form"""
+    selected = category_treeview.focus()
+    if not selected:
+        return
+    values = category_treeview.item(selected, 'values')
+    if not values:
+        return
 
-        main = ttk.Frame(self.root)
-        main.grid(row=0, column=0, sticky="nsew")
+    clear_fields(False)
+    id_entry.insert(0, values[0])
+    name_entry.insert(0, values[1])
+    description_text.insert(1.0, values[2] if values[2] else "")
 
-        main.columnconfigure(0, weight=1, uniform="group")
-        main.columnconfigure(1, weight=2, uniform="group")
-        main.rowconfigure(0, weight=1)
 
-        left = ttk.Frame(main, padding=20)
-        left.grid(row=0, column=0, sticky="nsew")
-        left.columnconfigure(0, weight=1)
-        left.rowconfigure(0, weight=1)
-        tk.Label(left, text="Ảnh minh họa\n(450x450)", font=("Arial", 16, "bold"),
-                 bg="lightgray", fg="black", relief=tk.RIDGE, bd=2).grid(sticky="nsew")
+def clear_fields(clear_selection=True):
+    """Xóa các trường nhập liệu"""
+    id_entry.delete(0, END)
+    name_entry.delete(0, END)
+    description_text.delete(1.0, END)
+    if clear_selection and category_treeview.selection():
+        category_treeview.selection_remove(category_treeview.selection())
 
-        right = ttk.Frame(main, padding=20)
-        right.grid(row=0, column=1, sticky="nsew")
-        right.columnconfigure(0, weight=1)
-        right.rowconfigure(3, weight=1)
 
-        ttk.Label(right, text="QUẢN LÝ DANH MỤC SẢN PHẨM",
-                  font=("Arial", 18, "bold")).grid(row=0, column=0, pady=10, sticky="n")
+def add_category():
+    """Thêm danh mục mới"""
+    cat_id = id_entry.get().strip()
+    cat_name = name_entry.get().strip()
+    cat_desc = description_text.get(1.0, END).strip()
 
-        self._build_form(right)
-        self._build_buttons(right)
-        self._build_table(right)
+    if not cat_id or not cat_name:
+        messagebox.showerror("Lỗi", "Vui lòng nhập đầy đủ ID và Tên danh mục!")
+        return
 
-    def _build_form(self, parent):
-        form = ttk.Frame(parent)
-        form.grid(row=1, column=0, sticky="ew", pady=10)
-        form.columnconfigure(1, weight=1)
+    try:
+        cat_id = int(cat_id)
+    except ValueError:
+        messagebox.showerror("Lỗi", "ID phải là số nguyên!")
+        return
 
-        ttk.Label(form, text="Mã danh mục (ID)").grid(row=0, column=0, padx=5, pady=8, sticky="w")
-        ttk.Entry(form, textvariable=self.var_id, width=30).grid(row=0, column=1, padx=5, pady=8, sticky="ew")
-
-        ttk.Label(form, text="Tên danh mục").grid(row=1, column=0, padx=5, pady=8, sticky="w")
-        ttk.Entry(form, textvariable=self.var_name, width=30).grid(row=1, column=1, padx=5, pady=8, sticky="ew")
-
-        ttk.Label(form, text="Mô tả").grid(row=2, column=0, padx=5, pady=8, sticky="nw")
-        self.txt_desc = tk.Text(form, font=("Arial", 12), height=4, bg="#f0f0f0", bd=0, relief=tk.FLAT)
-        self.txt_desc.grid(row=2, column=1, padx=5, pady=8, sticky="ew")
-
-    def _build_buttons(self, parent):
-        btn_frame = ttk.Frame(parent)
-        btn_frame.grid(row=2, column=0, sticky="ew", pady=10)
-        btn_frame.columnconfigure((0, 1, 2, 3), weight=1)
-
-        buttons = [
-            ("➕ Thêm", "#4CAF50", "#45a049", self.add_category),
-            ("📝 Cập nhật", "#FF9800", "#e68a00", self.update_category),
-            ("🗑️ Xóa", "#F44336", "#d32f2f", self.delete_category),
-            ("🔄 Làm mới", "#607D8B", "#546E7A", self.clear_form),
-        ]
-
-        for i, (text, bg, hover, cmd) in enumerate(buttons):
-            btn = tk.Button(btn_frame, text=text, font=("Arial", 12, "bold"),
-                            bg=bg, fg="white", activebackground=hover,
-                            relief=tk.RAISED, cursor="hand2", command=cmd)
-            btn.grid(row=0, column=i, padx=5, pady=5, ipadx=8, ipady=5, sticky="ew")
-
-            def on_enter(e, b=btn, h=hover): b.config(bg=h)
-
-            def on_leave(e, b=btn, c=bg): b.config(bg=c)
-
-            btn.bind("<Enter>", on_enter)
-            btn.bind("<Leave>", on_leave)
-
-    def _build_table(self, parent):
-        frame = ttk.Frame(parent)
-        frame.grid(row=3, column=0, sticky="nsew", pady=10)
-        frame.columnconfigure(0, weight=1)
-        frame.rowconfigure(0, weight=1)
-
-        scrolly = ttk.Scrollbar(frame, orient=tk.VERTICAL)
-        scrollx = ttk.Scrollbar(frame, orient=tk.HORIZONTAL)
-        self.tree = ttk.Treeview(frame, columns=("id", "name", "description"),
-                                 yscrollcommand=scrolly.set, xscrollcommand=scrollx.set)
-        scrolly.config(command=self.tree.yview)
-        scrollx.config(command=self.tree.xview)
-        scrolly.grid(row=0, column=1, sticky="ns")
-        scrollx.grid(row=1, column=0, sticky="ew")
-        self.tree.grid(row=0, column=0, sticky="nsew")
-
-        for col, text, width in [("id", "ID", 80), ("name", "Tên danh mục", 160), ("description", "Mô tả", 280)]:
-            self.tree.heading(col, text=text)
-            self.tree.column(col, width=width)
-        self.tree["show"] = "headings"
-        self.tree.bind("<<TreeviewSelect>>", self._on_select)
-
-    # -------------------- LOGIC (ĐÃ NÂNG CẤP LÊN MYSQL) -------------------- #
-
-    def _setup_database(self):
-        """Tự động tạo CSDL và Bảng nếu chúng chưa tồn tại."""
-        conn = None
-        cursor = None
-        try:
-            conn = mysql.connector.connect(host=DB_HOST, user=DB_USER, password=DB_PASS)
-            cursor = conn.cursor()
-            cursor.execute(f"CREATE DATABASE IF NOT EXISTS {DB_NAME}")
-            cursor.execute(f"USE {DB_NAME}")
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS category (
-                    id INT PRIMARY KEY,
-                    name VARCHAR(100) NOT NULL,
-                    description TEXT
-                )
-            """)
-            conn.commit()
-        except mysql.connector.Error as err:
-            messagebox.showerror("Lỗi CSDL", f"Không thể thiết lập CSDL: {err}", parent=self.root)
-        finally:
-            if cursor: cursor.close()
-            if conn: conn.close()
-
-    def _load_data(self):
-        """Lấy dữ liệu từ CSDL MySQL và hiển thị lên bảng"""
-        self.tree.delete(*self.tree.get_children())
-        conn = None
-        cursor = None
-        try:
-            conn = mysql.connector.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM category")
-            rows = cursor.fetchall()
-            if rows:
-                for row in rows:
-                    self.tree.insert('', tk.END, values=row)
-        except mysql.connector.Error as err:
-            messagebox.showerror("Lỗi CSDL", f"Không thể tải dữ liệu: {err}", parent=self.root)
-        finally:
-            if cursor: cursor.close()
-            if conn: conn.close()
-
-    def _get_form_data(self):
-        return (
-            self.var_id.get().strip(),
-            self.var_name.get().strip(),
-            self.txt_desc.get("1.0", tk.END).strip()
-        )
-
-    def _validate_form(self, id_val, name_val):
-        if not id_val or not name_val:
-            messagebox.showerror("Lỗi", "Vui lòng nhập đầy đủ Mã và Tên danh mục.", parent=self.root)
-            return False
-        if not id_val.isdigit():
-            messagebox.showerror("Lỗi", "Mã danh mục phải là số nguyên.", parent=self.root)
-            return False
-        return True
-
-    def add_category(self):
-        id_val, name_val, desc_val = self._get_form_data()
-        if not self._validate_form(id_val, name_val):
+    cursor, conn = connect_database()
+    if not cursor:
+        return
+    try:
+        cursor.execute("USE inventory_system")
+        cursor.execute("SELECT * FROM category WHERE id=%s", (cat_id,))
+        if cursor.fetchone():
+            messagebox.showerror("Lỗi", "ID này đã tồn tại!")
             return
 
-        conn = None
-        cursor = None
-        try:
-            conn = mysql.connector.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
-            cursor = conn.cursor()
+        cursor.execute("INSERT INTO category (id, name, description) VALUES (%s, %s, %s)",
+                       (cat_id, cat_name, cat_desc))
+        conn.commit()
+        messagebox.showinfo("Thành công", "Đã thêm danh mục mới!")
+        treeview_data()
+        clear_fields()
+    except Exception as e:
+        messagebox.showerror("Lỗi", f"Không thể thêm: {e}")
+    finally:
+        cursor.close()
+        conn.close()
 
-            cursor.execute("SELECT * FROM category WHERE id = %s", (id_val,))
-            if cursor.fetchone():
-                return messagebox.showerror("Lỗi", "Mã danh mục này đã tồn tại.", parent=self.root)
 
-            query = "INSERT INTO category (id, name, description) VALUES (%s, %s, %s)"
-            values = (int(id_val), name_val, desc_val)
-            cursor.execute(query, values)
+def update_category():
+    """Cập nhật danh mục"""
+    selected = category_treeview.selection()
+    if not selected:
+        messagebox.showerror("Lỗi", "Vui lòng chọn danh mục để cập nhật!")
+        return
 
-            conn.commit()
-            self._load_data()
-            self.clear_form()
-            messagebox.showinfo("Thành công", "Đã thêm danh mục mới.", parent=self.root)
+    cat_id = id_entry.get().strip()
+    cat_name = name_entry.get().strip()
+    cat_desc = description_text.get(1.0, END).strip()
 
-        except mysql.connector.Error as err:
-            messagebox.showerror("Lỗi CSDL", f"Lỗi khi thêm: {err}", parent=self.root)
-        finally:
-            if cursor: cursor.close()
-            if conn: conn.close()
+    if not cat_id or not cat_name:
+        messagebox.showerror("Lỗi", "Vui lòng nhập đầy đủ ID và Tên danh mục!")
+        return
 
-    def update_category(self):
-        id_val, name_val, desc_val = self._get_form_data()
-        if not self._validate_form(id_val, name_val):
+    cursor, conn = connect_database()
+    if not cursor:
+        return
+    try:
+        cursor.execute("USE inventory_system")
+        cursor.execute("SELECT * FROM category WHERE id=%s", (cat_id,))
+        current_data = cursor.fetchone()
+        if not current_data:
+            messagebox.showerror("Lỗi", "Không tìm thấy danh mục!")
             return
 
-        conn = None
-        cursor = None
-        try:
-            conn = mysql.connector.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
-            cursor = conn.cursor()
+        current_data = current_data[1:]
+        new_data = (cat_name, cat_desc)
 
-            query = "UPDATE category SET name = %s, description = %s WHERE id = %s"
-            values = (name_val, desc_val, int(id_val))
-            cursor.execute(query, values)
-
-            conn.commit()
-            if cursor.rowcount == 0:
-                return messagebox.showerror("Lỗi", "Không tìm thấy mã danh mục để cập nhật.", parent=self.root)
-
-            self._load_data()
-            self.clear_form()
-            messagebox.showinfo("Thành công", "Đã cập nhật danh mục.", parent=self.root)
-
-        except mysql.connector.Error as err:
-            messagebox.showerror("Lỗi CSDL", f"Lỗi khi cập nhật: {err}", parent=self.root)
-        finally:
-            if cursor: cursor.close()
-            if conn: conn.close()
-
-    def delete_category(self):
-        id_val = self.var_id.get()
-        if not id_val:
-            return messagebox.showerror("Lỗi", "Vui lòng chọn danh mục để xóa.", parent=self.root)
-        if not messagebox.askyesno("Xác nhận", "Bạn có chắc chắn muốn xóa danh mục này?", parent=self.root):
+        if current_data == new_data:
+            messagebox.showinfo("Thông báo", "Không có thay đổi nào!")
             return
 
-        conn = None
-        cursor = None
-        try:
-            conn = mysql.connector.connect(host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME)
-            cursor = conn.cursor()
-
-            query = "DELETE FROM category WHERE id = %s"
-            cursor.execute(query, (int(id_val),))
-
-            conn.commit()
-            if cursor.rowcount == 0:
-                return messagebox.showerror("Lỗi", "Không tìm thấy mã danh mục để xóa.", parent=self.root)
-
-            self._load_data()
-            self.clear_form()
-            messagebox.showinfo("Thành công", "Đã xóa danh mục.", parent=self.root)
-
-        except mysql.connector.Error as err:
-            messagebox.showerror("Lỗi CSDL", f"Lỗi khi xóa: {err}", parent=self.root)
-        finally:
-            if cursor: cursor.close()
-            if conn: conn.close()
-
-    def clear_form(self):
-        self.var_id.set("")
-        self.var_name.set("")
-        self.txt_desc.delete("1.0", tk.END)
-        if self.tree.selection():  # Chỉ bỏ chọn nếu có mục đang được chọn
-            self.tree.selection_remove(self.tree.selection())
-        self.root.focus()
-
-    def _on_select(self, _):
-        selected = self.tree.focus()
-        if not selected: return
-        row = self.tree.item(selected)['values']
-        if not row: return
-
-        self.var_id.set(row[0])
-        self.var_name.set(row[1])
-        self.txt_desc.delete("1.0", tk.END)
-        self.txt_desc.insert("1.0", str(row[2]))
+        cursor.execute("UPDATE category SET name=%s, description=%s WHERE id=%s",
+                       (cat_name, cat_desc, cat_id))
+        conn.commit()
+        messagebox.showinfo("Thành công", "Đã cập nhật danh mục!")
+        treeview_data()
+        clear_fields()
+    except Exception as e:
+        messagebox.showerror("Lỗi", f"Không thể cập nhật: {e}")
+    finally:
+        cursor.close()
+        conn.close()
 
 
-# -------------------- CHẠY -------------------- #
-if __name__ == "__main__":
-    """
-    Phần này dùng để chạy thử file category.py một cách độc lập.
-    Khi bạn import file này vào dự án chính, đoạn mã này sẽ không chạy.
-    """
-    root = tk.Tk()
-    root.title("Quản lý Danh mục (Responsive UI - Phiên bản MySQL)")
-    root.geometry("1200x700+50+50")
-    root.minsize(900, 600)
-    root.configure(bg="white")
+def delete_category():
+    """Xóa danh mục"""
+    selected = category_treeview.selection()
+    if not selected:
+        messagebox.showerror("Lỗi", "Vui lòng chọn danh mục để xóa!")
+        return
 
-    app = Category(root)  # Khởi tạo Lớp
+    cat_id = id_entry.get().strip()
+    if not cat_id:
+        messagebox.showerror("Lỗi", "Không có ID để xóa!")
+        return
 
-    root.mainloop()
+    result = messagebox.askyesno("Xác nhận", "Bạn có chắc chắn muốn xóa danh mục này?")
+    if not result:
+        return
+
+    cursor, conn = connect_database()
+    if not cursor:
+        return
+    try:
+        cursor.execute("USE inventory_system")
+        cursor.execute("DELETE FROM category WHERE id=%s", (cat_id,))
+        conn.commit()
+
+        if cursor.rowcount == 0:
+            messagebox.showerror("Lỗi", "Không tìm thấy danh mục để xóa!")
+            return
+
+        messagebox.showinfo("Thành công", "Đã xóa danh mục!")
+        treeview_data()
+        clear_fields()
+    except Exception as e:
+        messagebox.showerror("Lỗi", f"Không thể xóa: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def search_category(search_value):
+    """Tìm kiếm danh mục theo ID"""
+    if not search_value:
+        messagebox.showerror("Lỗi", "Vui lòng nhập ID để tìm kiếm!")
+        return
+
+    cursor, conn = connect_database()
+    if not cursor:
+        return
+    try:
+        cursor.execute("USE inventory_system")
+        cursor.execute("SELECT * FROM category WHERE id=%s", (search_value,))
+        record = cursor.fetchone()
+
+        if not record:
+            messagebox.showerror("Lỗi", "Không tìm thấy danh mục!")
+            return
+
+        category_treeview.delete(*category_treeview.get_children())
+        category_treeview.insert("", END, values=record)
+    except Exception as e:
+        messagebox.showerror("Lỗi", f"Lỗi tìm kiếm: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def show_all(search_entry):
+    """Hiển thị tất cả danh mục"""
+    treeview_data()
+    search_entry.delete(0, END)
+
+
+def category_form(window):
+    """Tạo form quản lý danh mục"""
+    global category_frame, category_treeview, id_entry, name_entry, description_text
+
+    category_frame = Frame(window, width=1070, height=567, bg="white")
+    category_frame.place(x=200, y=100)
+
+    # Header
+    heading_label = Label(category_frame, text="Manage Category Details",
+                          font=("Times New Roman", 16, "bold"),
+                          bg="#0f4d7d", fg="white")
+    heading_label.place(x=0, y=0, relwidth=1)
+
+    # Back button
+    back_image = PhotoImage(file=r"helpers/icons/back_button.png")
+    back_button = Button(category_frame, image=back_image, cursor="hand2",
+                         bd=0, bg="white",
+                         command=lambda: category_frame.place_forget())
+    back_button.image = back_image
+    back_button.place(x=10, y=30)
+
+    # Left Frame - Form nhập liệu
+    left_frame = Frame(category_frame, bg="white")
+    left_frame.place(x=10, y=100)
+
+    Label(left_frame, text="Id", font=("Times New Roman", 14, "bold"),
+          bg="white").grid(row=0, column=0, padx=(20, 40), sticky="w")
+    id_entry = Entry(left_frame, font=("Times New Roman", 14, "bold"),
+                     bg="lightyellow")
+    id_entry.grid(row=0, column=1, sticky="w")
+
+    Label(left_frame, text="Category Name", font=("Times New Roman", 14, "bold"),
+          bg="white").grid(row=1, column=0, padx=(20, 40), pady=20, sticky="w")
+    name_entry = Entry(left_frame, font=("Times New Roman", 14, "bold"),
+                       bg="lightyellow")
+    name_entry.grid(row=1, column=1, sticky="w")
+
+    Label(left_frame, text="Description", font=("Times New Roman", 14, "bold"),
+          bg="white").grid(row=2, column=0, padx=(20, 40), pady=25, sticky="nw")
+    description_text = Text(left_frame, width=25, height=6, bd=2)
+    description_text.grid(row=2, column=1, sticky="w")
+
+    # Button Frame
+    button_frame = Frame(left_frame, bg="white")
+    button_frame.grid(row=3, column=0, columnspan=2, pady=20)
+
+    Button(button_frame, text="Add", font=("Times New Roman", 14),
+           width=8, cursor="hand2", fg="white", bg="#0f4d7d",
+           command=add_category).grid(row=0, column=0, padx=20)
+
+    Button(button_frame, text="Update", font=("Times New Roman", 14),
+           width=8, cursor="hand2", fg="white", bg="#0f4d7d",
+           command=update_category).grid(row=0, column=1, padx=20)
+
+    Button(button_frame, text="Delete", font=("Times New Roman", 14),
+           width=8, cursor="hand2", fg="white", bg="#0f4d7d",
+           command=delete_category).grid(row=0, column=2, padx=20)
+
+    Button(button_frame, text="Clear", font=("Times New Roman", 14),
+           width=8, cursor="hand2", fg="white", bg="#0f4d7d",
+           command=lambda: clear_fields(True)).grid(row=0, column=3, padx=20)
+
+    # Right Frame - Treeview
+    right_frame = Frame(category_frame, bg="white")
+    right_frame.place(x=520, y=95, width=500, height=450)
+
+    # Search Frame
+    search_frame = Frame(right_frame)
+    search_frame.pack(pady=(0, 20))
+
+    Label(search_frame, text="Id", font=("Times New Roman", 14, "bold"),
+          bg="white").grid(row=0, column=0, padx=(0, 15), sticky="w")
+    search_entry = Entry(search_frame, font=("Times New Roman", 14, "bold"),
+                         bg="lightyellow", width=12)
+    search_entry.grid(row=0, column=1, sticky="w")
+
+    Button(search_frame, text="Search", font=("Times New Roman", 14),
+           width=8, cursor="hand2", fg="white", bg="#0f4d7d",
+           command=lambda: search_category(search_entry.get())).grid(row=0, column=2, padx=20)
+
+    Button(search_frame, text="Show All", font=("Times New Roman", 14),
+           width=8, cursor="hand2", fg="white", bg="#0f4d7d",
+           command=lambda: show_all(search_entry)).grid(row=0, column=3)
+
+    # Treeview
+    category_treeview = ttk.Treeview(right_frame,
+                                     columns=("id", "name", "description"),
+                                     show="headings")
+    category_treeview.pack(fill=BOTH, expand=True)
+
+    category_treeview.heading("id", text="ID")
+    category_treeview.heading("name", text="Category Name")
+    category_treeview.heading("description", text="Description")
+
+    category_treeview.column("id", width=80)
+    category_treeview.column("name", width=160)
+    category_treeview.column("description", width=300)
+
+    # Scrollbar
+    x_scroll = ttk.Scrollbar(right_frame, orient=HORIZONTAL,
+                             command=category_treeview.xview)
+    category_treeview.configure(xscrollcommand=x_scroll.set)
+    x_scroll.pack(side=BOTTOM, fill=X)
+
+    # Ngăn resize cột
+    category_treeview.bind('<Button-1>',
+                           lambda e: 'break' if category_treeview.identify_region(e.x, e.y) == "separator" else None)
+
+    # Bind select event
+    category_treeview.bind("<ButtonRelease-1>", select_data)
+
+    # Tạo bảng và load dữ liệu
+    create_category_table()
+    treeview_data()

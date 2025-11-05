@@ -11,7 +11,7 @@ sys.stdout.reconfigure(encoding='utf-8')
 window = Tk()
 window.title("Dashboard")
 window.geometry("1270x668")
-window.resizable(0,0)
+# window.resizable(0,0)
 window.config(bg="white")
 
 bg_image=PhotoImage(file=r"helpers/icons/inventory.png")
@@ -43,7 +43,13 @@ supplier_button = Button(leftFrame,image=supplier_icon, compound=LEFT, text="  S
 supplier_button.pack(fill=X)
 
 category_icon=PhotoImage(file=r"helpers/icons/category.png")
-category_button = Button(leftFrame,image=category_icon, compound=LEFT, text="  Category", font=("Times New Roman", 20, "bold"), cursor="hand2",anchor="w")
+from category import category_form
+
+# Trong phần button
+category_button = Button(leftFrame, image=category_icon, compound=LEFT, 
+                        text="  Category", font=("Times New Roman", 20, "bold"), 
+                        cursor="hand2", anchor="w", 
+                        command=lambda: category_form(window))
 category_button.pack(fill=X)
 
 product_icon=PhotoImage(file=r"helpers/icons/product.png")
@@ -54,9 +60,9 @@ sales_icon=PhotoImage(file=r"helpers/icons/sales.png")
 sales_button = Button(leftFrame,image=sales_icon, compound=LEFT, text="  Sales", font=("Times New Roman", 20, "bold"), cursor="hand2",anchor="w")
 sales_button.pack(fill=X)
 
-tax_icon=PhotoImage(file=r"helpers/icons/tax.png")
-tax_button = Button(leftFrame,image=tax_icon, compound=LEFT, text="  Tax", font=("Times New Roman", 20, "bold"), cursor="hand2",anchor="w", padx=10, command=lambda:tax_form(window))
-tax_button.pack(fill=X)
+# tax_icon=PhotoImage(file=r"helpers/icons/tax.png")
+# tax_button = Button(leftFrame,image=tax_icon, compound=LEFT, text="  Tax", font=("Times New Roman", 20, "bold"), cursor="hand2",anchor="w", padx=10, command=lambda:tax_form(window))
+# tax_button.pack(fill=X)
 
 exit_icon=PhotoImage(file=r"helpers/icons/exit.png")
 exit_button = Button(leftFrame,image=exit_icon, compound=LEFT, text="  Exit", font=("Times New Roman", 20, "bold"), cursor="hand2",anchor="w")

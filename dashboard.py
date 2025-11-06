@@ -7,7 +7,7 @@ from supplier import supplier_form
 from tax import tax_form
 import sys
 sys.stdout.reconfigure(encoding='utf-8')
-
+print(1)
 window = Tk()
 window.title("Dashboard")
 window.geometry("1270x668")

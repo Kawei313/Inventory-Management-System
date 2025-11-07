@@ -6,7 +6,7 @@ import pymysql # pip install pymysql
 
 def connect_database():
   try:
-    connection=pymysql.connect(host="localhost", user="root", password="@Bach2004")
+    connection=pymysql.connect(host="localhost", user="root", password="Huylc2004@gmail")
     cursor = connection.cursor()
   except:
     messagebox.showerror("Error", "Database connectivity issue try again")
@@ -115,8 +115,8 @@ def add_employee(empid, name, email, gender, dob, contact, employment_type,educa
     if not cursor or not connection:
       return
     cursor.execute("use inventory_system")
-    try: 
-      cursor.execute("SELECT empid from employee_data WHERE empid=%s", (empid))
+    try:
+      cursor.execute("SELECT empid from employee_data WHERE empid=%s", (empid,))
       if cursor.fetchone():
         messagebox.showerror("Error", "Id already exists")
         return
@@ -220,7 +220,9 @@ def show_all(search_entry, search_combobox):
 
 #Functionality Part
 def employee_form(window):
-  global back_image, employee_treeview #Biến toàn cục để tránh bị thu khi hàm kết thúc
+  global back_image, employee_treeview
+  #Biến toàn cục để tránh bị thu khi hàm kết thúc
+  create_database_table()
   employee_frame=Frame(window, width=1070, height=567, bg="white")
   employee_frame.place(x=200, y=100)
   heading_label = Label(employee_frame, text="Manage Employee Details", font=("Times New Roman", 16, "bold"), bg="#0f4d7d", fg="white")
@@ -402,4 +404,3 @@ def employee_form(window):
                                                           dob_date_entry,gender_combobox, contact_entry, 
                                                           employment_type_combobox,education_combobox, work_shift_combobox,
                                                           address_text, doj_date_entry, salary_entry, usertype_combobox, password_entry))
-  create_database_table()

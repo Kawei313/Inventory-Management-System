@@ -1,11 +1,13 @@
 # sales.py (hoặc file chính chạy bán hàng)
+import sys
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
 import random
 import os
 from employees import connect_database  # <-- Dùng hàm connect_database từ employees.py
-
+import io
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 class InventoryManagementSystem:
     def __init__(self, root):
         self.root = root

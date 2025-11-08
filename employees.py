@@ -6,7 +6,7 @@ import pymysql # pip install pymysql
 
 def connect_database():
   try:
-    connection=pymysql.connect(host="localhost", user="root", password="Huylc2004@gmail")
+    connection=pymysql.connect(host="localhost", user="root", password="@Bach2004")
     cursor = connection.cursor()
   except:
     messagebox.showerror("Error", "Database connectivity issue try again")
@@ -393,7 +393,8 @@ def employee_form(window):
                                                                                                                                                       doj_date_entry.get(), salary_entry.get(), usertype_combobox.get(), password_entry.get()))
   update_button.grid(row=0, column=1, padx=20)
   
-
+  delete_button=Button(button_frame, text="Delete", font=("Times New Roman", 12), width=10, cursor="hand2", fg="white", bg="#0f4d7d", command=lambda:delete_employee(empid_entry.get()))
+  delete_button.grid(row=0, column=2, padx=20)
   
   clear_button=Button(button_frame, text="Clear", font=("Times New Roman", 12), width=10, cursor="hand2", fg="white", bg="#0f4d7d", command=lambda:clear_fields(empid_entry, name_entry, email_entry,
                                                                                                                                                                   dob_date_entry,gender_combobox, contact_entry, 

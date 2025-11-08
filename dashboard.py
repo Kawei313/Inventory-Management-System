@@ -18,7 +18,7 @@ from tkinter import messagebox
 
 def connect_database():
   try:
-    connection=pymysql.connect(host="localhost", user="root", password="Huylc2004@gmail")
+    connection=pymysql.connect(host="localhost", user="root", password="@Bach2004")
     cursor = connection.cursor()
   except:
     messagebox.showerror("Error", "Database connectivity issue try again")
@@ -224,7 +224,7 @@ def update_totals():
         cursor.execute("SELECT COUNT(*) FROM tax_data")
         total_sup_count_label.config(text=str(cursor.fetchone()[0]))
 
-        cursor.execute("SELECT COUNT(*) FROM category")
+        cursor.execute("SELECT COUNT(*) FROM category_data")
         total_cat_count_label.config(text=str(cursor.fetchone()[0]))
 
         cursor.execute("SELECT COUNT(*) FROM product_data")

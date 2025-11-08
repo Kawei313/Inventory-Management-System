@@ -21,8 +21,15 @@ def connect_db():
 # ================== MỞ GIAO DIỆN USER ==================
 def open_user_window(name, root):
     root.destroy()  # Đóng cửa sổ login
-    import user_dashboard
-    user_dashboard.open_user_dashboard(name)
+    import subprocess, sys, os
+
+    # Lấy đường dẫn tuyệt đối đến file sales.py
+    python_exec = sys.executable
+    sales_path = os.path.join(os.path.dirname(__file__), "Login_Employee.py")
+
+    # Mở giao diện user (sales)
+    subprocess.Popen([python_exec, sales_path])
+
 
 
 # ================== HÀM ĐĂNG NHẬP ==================

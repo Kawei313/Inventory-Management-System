@@ -5,11 +5,25 @@ from employees import employee_form
 from supplier import supplier_form
 from tax import tax_form
 from products import product_form
+from category import category_form
+from products import product_form
 import sys
 from tkinter import messagebox
 import subprocess
 import os
 
+import pymysql # pip install pymysql
+from datetime import datetime
+from tkinter import messagebox
+
+def connect_database():
+  try:
+    connection=pymysql.connect(host="localhost", user="root", password="Huylc2004@gmail")
+    cursor = connection.cursor()
+  except:
+    messagebox.showerror("Error", "Database connectivity issue try again")
+    return None, None
+  return cursor, connection
 sys.stdout.reconfigure(encoding='utf-8')
 
 # --- Hàm xử lý logout ---
@@ -49,8 +63,15 @@ logoutButton.place(x=1100, y=10)
 
 subtitleLabel = Label(window, text="Welcome Admin\t\t Date: 08-07-2024\t\t Time: 12:36:17 pm",
                       font=("Times New Roman", 15), bg="#4d636d", fg="white")
+subtitleLabel = Label(window, text="", font=("Times New Roman", 15), bg="#4d636d", fg="white")
 subtitleLabel.place(x=0, y=70, relwidth=1)
-
+def update_subtitle():
+    now = datetime.now()
+    date = now.strftime("%d-%m-%Y")
+    time = now.strftime("%I:%M:%S %p")   # 12h format + AM/PM
+    subtitleLabel.config(text=f"Welcome Admin\t\t Date: {date}\t\t Time: {time}")
+    window.after(1000, update_subtitle)
+update_subtitle()
 leftFrame = Frame(window)
 leftFrame.place(x=0, y=102, width=200, height=555)
 
@@ -105,69 +126,126 @@ exit_button = Button(leftFrame, image=exit_icon, compound=LEFT, text="  Exit",
                      anchor="w", command=lambda: exit_app(window))
 exit_button.pack(fill=X)
 
-
-# --- Các khung thống kê ---
+#nút total employee
 emp_frame = Frame(window, bg="#2C3E50", bd=3, relief=RIDGE)
 emp_frame.place(x=400, y=125, height=170, width=280)
-total_emp_icon = PhotoImage(file=r"helpers/icons/total_employee.png")
-Label(emp_frame, image=total_emp_icon, bg="#2C3E50").pack()
-Label(emp_frame, text="Total Employees", font=("Times New Roman", 15, "bold"),
-      bg="#2C3E50", fg="white").pack()
-Label(emp_frame, text="0", font=("Times New Roman", 30, "bold"),
-      bg="#2C3E50", fg="white").pack()
+total_emp_icon=PhotoImage(file=r"helpers/icons/total_employee.png")
+total_emp_icon_label = Label(emp_frame, image=total_emp_icon, bg="#2C3E50")
+total_emp_icon_label.pack()
+
+total_emp_label = Label(emp_frame, text="Total Employees", font=("Times New Roman", 15, "bold"), bg="#2C3E50", fg="white")
+total_emp_label.pack()
 
 total_emp_count_label = Label(emp_frame, text="0", font=("Times New Roman", 30, "bold"), bg="#2C3E50", fg="white")
 total_emp_count_label.pack()
-
-#total supplier
+# CLICK TOTAL EMPLOYEES → MỞ EMPLOYEE FORM
+for widget in (emp_frame, total_emp_icon_label, total_emp_label, total_emp_count_label):
+    widget.bind("<Button-1>", lambda e: employee_form(window))
+#
 sup_frame = Frame(window, bg="#8E44AD", bd=3, relief=RIDGE)
 sup_frame.place(x=800, y=125, height=170, width=280)
-total_sup_icon = PhotoImage(file=r"helpers/icons/total_sup.png")
-Label(sup_frame, image=total_sup_icon, bg="#8E44AD").pack()
-Label(sup_frame, text="Total Suppliers", font=("Times New Roman", 15, "bold"),
-      bg="#8E44AD", fg="white").pack()
-Label(sup_frame, text="0", font=("Times New Roman", 30, "bold"),
-      bg="#8E44AD", fg="white").pack()
+total_sup_icon=PhotoImage(file=r"helpers/icons/total_sup.png")
+total_sup_icon_label = Label(sup_frame, image=total_sup_icon, bg="#8E44AD")
+total_sup_icon_label.pack()
+
+total_sup_label = Label(sup_frame, text="Total Suppliers", font=("Times New Roman", 15, "bold"), bg="#8E44AD", fg="white")
+total_sup_label.pack()
 
 total_sup_count_label = Label(sup_frame, text="0", font=("Times New Roman", 30, "bold"), bg="#8E44AD", fg="white")
 total_sup_count_label.pack()
+# CLICK TOTAL SUPPLIERS → MỞ SUPPLIER FORM
+for widget in (sup_frame, total_sup_icon_label, total_sup_label, total_sup_count_label):
+    widget.bind("<Button-1>", lambda e: supplier_form(window))
+
 
 #total category
 cat_frame = Frame(window, bg="#27AE60", bd=3, relief=RIDGE)
 cat_frame.place(x=400, y=310, height=170, width=280)
-total_cat_icon = PhotoImage(file=r"helpers/icons/total_cat.png")
-Label(cat_frame, image=total_cat_icon, bg="#27AE60").pack()
-Label(cat_frame, text="Total Categories", font=("Times New Roman", 15, "bold"),
-      bg="#27AE60", fg="white").pack()
-Label(cat_frame, text="0", font=("Times New Roman", 30, "bold"),
-      bg="#27AE60", fg="white").pack()
+total_cat_icon=PhotoImage(file=r"helpers/icons/total_cat.png")
+total_cat_icon_label = Label(cat_frame, image=total_cat_icon, bg="#27AE60")
+total_cat_icon_label.pack()
+
+total_cat_label = Label(cat_frame, text="Total Categories", font=("Times New Roman", 15, "bold"), bg="#27AE60", fg="white")
+total_cat_label.pack()
 
 total_cat_count_label = Label(cat_frame, text="0", font=("Times New Roman", 30, "bold"), bg="#27AE60", fg="white")
 total_cat_count_label.pack()
+# CLICK TOTAL CATEGORIES → MỞ CATEGORY FORM
+for widget in (cat_frame, total_cat_icon_label, total_cat_label, total_cat_count_label):
+    widget.bind("<Button-1>", lambda e: category_form(window))
 
-#total product
+
 prod_frame = Frame(window, bg="#E74C3C", bd=3, relief=RIDGE)
 prod_frame.place(x=800, y=310, height=170, width=280)
-total_prod_icon = PhotoImage(file=r"helpers/icons/total_prod.png")
-Label(prod_frame, image=total_prod_icon, bg="#E74C3C").pack()
-Label(prod_frame, text="Total Products", font=("Times New Roman", 15, "bold"),
-      bg="#E74C3C", fg="white").pack()
-Label(prod_frame, text="0", font=("Times New Roman", 30, "bold"),
-      bg="#E74C3C", fg="white").pack()
+total_prod_icon=PhotoImage(file=r"helpers/icons/total_prod.png")
+total_prod_icon_label = Label(prod_frame, image=total_prod_icon, bg="#E74C3C")
+total_prod_icon_label.pack()
+
+total_prod_label = Label(prod_frame, text="Total Products", font=("Times New Roman", 15, "bold"), bg="#E74C3C", fg="white")
+total_prod_label.pack()
 
 total_prod_count_label = Label(prod_frame, text="0", font=("Times New Roman", 30, "bold"), bg="#E74C3C", fg="white")
 total_prod_count_label.pack()
+# CLICK TOTAL PRODUCTS → MỞ PRODUCT FORM
+for widget in (prod_frame, total_prod_icon_label, total_prod_label, total_prod_count_label):
+    widget.bind("<Button-1>", lambda e: product_form(window))
 
 
 #total sales
 sales_frame = Frame(window, bg="#6D3CE7", bd=3, relief=RIDGE)
 sales_frame.place(x=600, y=495, height=170, width=280)
-total_sales_icon = PhotoImage(file=r"helpers/icons/total_sales.png")
-Label(sales_frame, image=total_sales_icon, bg="#6D3CE7").pack(pady=10)
-Label(sales_frame, text="Total Sales", font=("Times New Roman", 15, "bold"),
-      bg="#6D3CE7", fg="white").pack()
-Label(sales_frame, text="0", font=("Times New Roman", 30, "bold"),
-      bg="#6D3CE7", fg="white").pack()
+total_sales_icon=PhotoImage(file=r"helpers/icons/total_sales.png")
+total_sales_icon_label = Label(sales_frame, image=total_sales_icon, bg="#6D3CE7")
+total_sales_icon_label.pack(pady=10)
+
+total_sales_label = Label(sales_frame, text="Total Sales", font=("Times New Roman", 15, "bold"), bg="#6D3CE7", fg="white")
+total_sales_label.pack()
+
+total_sales_count_label = Label(sales_frame, text="0", font=("Times New Roman", 30, "bold"), bg="#6D3CE7", fg="white")
+total_sales_count_label.pack()
+# CLICK TOTAL SALES → MỞ TAX/SALES FORM
+for widget in (sales_frame, total_sales_icon_label, total_sales_label, total_sales_count_label):
+    widget.bind("<Button-1>", lambda e: tax_form(window))
+
+
+
+
+def update_totals():
+    cursor, conn = connect_database()
+    if cursor is None or conn is None:
+        return
+
+    try:
+        cursor.execute("USE inventory_system")
+
+        cursor.execute("SELECT COUNT(*) FROM employee_data")
+        total_emp_count_label.config(text=str(cursor.fetchone()[0]))
+
+        cursor.execute("SELECT COUNT(*) FROM tax_data")
+        total_sup_count_label.config(text=str(cursor.fetchone()[0]))
+
+        cursor.execute("SELECT COUNT(*) FROM category")
+        total_cat_count_label.config(text=str(cursor.fetchone()[0]))
+
+        cursor.execute("SELECT COUNT(*) FROM product_data")
+        total_prod_count_label.config(text=str(cursor.fetchone()[0]))
+
+        cursor.execute("SELECT COUNT(*) FROM tax_data")  # nếu bảng bạn tên "sales" thì đổi tên
+        total_sales_count_label.config(text=str(cursor.fetchone()[0]))
+
+    except Exception as e:
+        messagebox.showerror("Error", f"Query Error: {e}")
+
+    finally:
+        conn.close()
+
+    # cập nhật lại sau mỗi 3 giây
+    window.after(3000, update_totals)
+
+
+
+update_totals()
+
 
 window.mainloop()
 

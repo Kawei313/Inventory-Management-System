@@ -1,10 +1,12 @@
-# dashboard.py (phiên bản hoàn chỉnh)
 from tkinter import *
-from tkinter import messagebox
+from tkinter import ttk
+from tkcalendar import DateEntry #Nhớ pip install tkcalendar
 from employees import employee_form
 from supplier import supplier_form
 from tax import tax_form
+from products import product_form
 import sys
+from tkinter import messagebox
 import subprocess
 import os
 
@@ -54,6 +56,7 @@ leftFrame.place(x=0, y=102, width=200, height=555)
 
 logoImage = PhotoImage(file=r"helpers/icons/logo.png")
 imageLabel = Label(leftFrame, image=logoImage)
+imageLabel.grid(row=0, column=0)
 imageLabel.pack()
 
 menuLabel = Label(leftFrame, text="Menu", font=("Times New Roman", 20, "bold"), bg="#009688")
@@ -81,9 +84,8 @@ category_button = Button(leftFrame, image=category_icon, compound=LEFT,
                         command=lambda: category_form(window))
 category_button.pack(fill=X)
 
-product_icon = PhotoImage(file=r"helpers/icons/product.png")
-product_button = Button(leftFrame, image=product_icon, compound=LEFT, text="  Product",
-                        font=("Times New Roman", 20, "bold"), cursor="hand2", anchor="w")
+product_icon=PhotoImage(file=r"helpers/icons/product.png")
+product_button = Button(leftFrame,image=product_icon, compound=LEFT, text="  Product", font=("Times New Roman", 20, "bold"), cursor="hand2",anchor="w",command=lambda: product_form(window))
 product_button.pack(fill=X)
 
 sales_icon = PhotoImage(file=r"helpers/icons/sales.png")
@@ -114,6 +116,10 @@ Label(emp_frame, text="Total Employees", font=("Times New Roman", 15, "bold"),
 Label(emp_frame, text="0", font=("Times New Roman", 30, "bold"),
       bg="#2C3E50", fg="white").pack()
 
+total_emp_count_label = Label(emp_frame, text="0", font=("Times New Roman", 30, "bold"), bg="#2C3E50", fg="white")
+total_emp_count_label.pack()
+
+#total supplier
 sup_frame = Frame(window, bg="#8E44AD", bd=3, relief=RIDGE)
 sup_frame.place(x=800, y=125, height=170, width=280)
 total_sup_icon = PhotoImage(file=r"helpers/icons/total_sup.png")
@@ -123,6 +129,10 @@ Label(sup_frame, text="Total Suppliers", font=("Times New Roman", 15, "bold"),
 Label(sup_frame, text="0", font=("Times New Roman", 30, "bold"),
       bg="#8E44AD", fg="white").pack()
 
+total_sup_count_label = Label(sup_frame, text="0", font=("Times New Roman", 30, "bold"), bg="#8E44AD", fg="white")
+total_sup_count_label.pack()
+
+#total category
 cat_frame = Frame(window, bg="#27AE60", bd=3, relief=RIDGE)
 cat_frame.place(x=400, y=310, height=170, width=280)
 total_cat_icon = PhotoImage(file=r"helpers/icons/total_cat.png")
@@ -132,6 +142,10 @@ Label(cat_frame, text="Total Categories", font=("Times New Roman", 15, "bold"),
 Label(cat_frame, text="0", font=("Times New Roman", 30, "bold"),
       bg="#27AE60", fg="white").pack()
 
+total_cat_count_label = Label(cat_frame, text="0", font=("Times New Roman", 30, "bold"), bg="#27AE60", fg="white")
+total_cat_count_label.pack()
+
+#total product
 prod_frame = Frame(window, bg="#E74C3C", bd=3, relief=RIDGE)
 prod_frame.place(x=800, y=310, height=170, width=280)
 total_prod_icon = PhotoImage(file=r"helpers/icons/total_prod.png")
@@ -141,6 +155,11 @@ Label(prod_frame, text="Total Products", font=("Times New Roman", 15, "bold"),
 Label(prod_frame, text="0", font=("Times New Roman", 30, "bold"),
       bg="#E74C3C", fg="white").pack()
 
+total_prod_count_label = Label(prod_frame, text="0", font=("Times New Roman", 30, "bold"), bg="#E74C3C", fg="white")
+total_prod_count_label.pack()
+
+
+#total sales
 sales_frame = Frame(window, bg="#6D3CE7", bd=3, relief=RIDGE)
 sales_frame.place(x=600, y=495, height=170, width=280)
 total_sales_icon = PhotoImage(file=r"helpers/icons/total_sales.png")
@@ -151,3 +170,4 @@ Label(sales_frame, text="0", font=("Times New Roman", 30, "bold"),
       bg="#6D3CE7", fg="white").pack()
 
 window.mainloop()
+

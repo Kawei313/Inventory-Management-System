@@ -71,9 +71,14 @@ supplier_button = Button(leftFrame, image=supplier_icon, compound=LEFT, text="  
                          anchor="w", padx=10, command=lambda: supplier_form(window))
 supplier_button.pack(fill=X)
 
-category_icon = PhotoImage(file=r"helpers/icons/category.png")
-category_button = Button(leftFrame, image=category_icon, compound=LEFT, text="  Category",
-                         font=("Times New Roman", 20, "bold"), cursor="hand2", anchor="w")
+category_icon=PhotoImage(file=r"helpers/icons/category.png")
+from category import category_form
+
+# Trong phần button
+category_button = Button(leftFrame, image=category_icon, compound=LEFT,
+                        text="  Category", font=("Times New Roman", 20, "bold"),
+                        cursor="hand2", anchor="w",
+                        command=lambda: category_form(window))
 category_button.pack(fill=X)
 
 product_icon = PhotoImage(file=r"helpers/icons/product.png")

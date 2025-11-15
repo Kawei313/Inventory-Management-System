@@ -1,4 +1,4 @@
-# sales.py - Sales Management & Revenue Statistics (SỬA LỖI %d format VĨNH VIỄN)
+# sales.py - Sales Management & Revenue Statistics (SẠCH, ỔN ĐỊNH, KHÔNG LỖI)
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 from tkcalendar import DateEntry
@@ -26,7 +26,6 @@ class SalesManagement:
             self.main_pane.sash_place(0, total_width // 2, 0)
 
     def create_layout(self):
-        print("[DEBUG] Tạo layout...")
         header = tk.Frame(self.parent, bg="#0f4d7d", height=60)
         header.pack(fill=tk.X)
         header.pack_propagate(False)
@@ -67,7 +66,6 @@ class SalesManagement:
         start_of_month = today.replace(day=1)
         self.from_date.set_date(start_of_month)
         self.to_date.set_date(today)
-        print(f"[DEBUG] Default dates: {start_of_month.strftime('%d-%m-%Y')} → {today.strftime('%d-%m-%Y')}")
 
     def create_stats_panel(self, parent):
         grid_frame = tk.Frame(parent, bg="white")
@@ -198,25 +196,20 @@ class SalesManagement:
         try:
             from_date = datetime.strptime(from_str, "%d-%m-%Y").strftime("%Y-%m-%d")
             to_date = datetime.strptime(to_str, "%d-%m-%Y").strftime("%Y-%m-%d")
-            print(f"[DEBUG] get_date_range: {from_str} → {to_str} → MySQL: {from_date} → {to_date}")
             return from_date, to_date
-        except Exception as e:
-            print(f"[ERROR] Date parse error: {e}")
+        except ValueError:
             today = datetime.now().strftime("%Y-%m-%d")
             return today, today
 
     def load_sales_data_in_range(self):
-        print("[DEBUG] Bắt đầu load_sales_data_in_range()...")
         cursor, conn = connect_database()
         if not cursor:
-            print("[ERROR] Không kết nối DB")
             return
 
         try:
             cursor.execute("USE inventory_system")
             from_date, to_date = self.get_date_range()
 
-            # DÙNG %%d ĐỂ THOÁT % TRONG PyMySQL
             query = """
                 SELECT invoice_no, customer_name, customer_contact, 
                        DATE_FORMAT(bill_date, '%%d/%%m/%%Y %%H:%%i'), total_amount, tax, net_pay
@@ -224,12 +217,8 @@ class SalesManagement:
                 WHERE DATE(bill_date) BETWEEN %s AND %s
                 ORDER BY bill_date DESC
             """
-            print(f"[DEBUG] Query (PyMySQL): {query.strip()}")
-            print(f"[DEBUG] Params: %s, %s → ({from_date}, {to_date})")
-
             cursor.execute(query, (from_date, to_date))
             rows = cursor.fetchall()
-            print(f"[DEBUG] Lấy được {len(rows)} hóa đơn")
 
             for row in self.sales_tree.get_children():
                 self.sales_tree.delete(row)
@@ -239,9 +228,6 @@ class SalesManagement:
             self.update_statistics()
 
         except Exception as e:
-            print(f"[ERROR] Load sales thất bại: {e}")
-            import traceback
-            traceback.print_exc()
             messagebox.showerror("Error", f"Failed to load sales: {e}")
         finally:
             cursor.close()
@@ -253,11 +239,9 @@ class SalesManagement:
             return
         try:
             invoice_no = int(self.sales_tree.item(selected[0], "values")[0])
-            print(f"[DEBUG] Chọn hóa đơn #{invoice_no}")
             self.load_invoice_details(invoice_no)
-        except Exception as e:
-            print(f"[ERROR] Lỗi chọn hóa đơn: {e}")
-            messagebox.showerror("Error", "Invalid invoice.")
+        except (ValueError, TypeError):
+            messagebox.showerror("Error", "Invalid invoice number.")
 
     def load_invoice_details(self, invoice_no):
         cursor, conn = connect_database()
@@ -296,8 +280,7 @@ class SalesManagement:
                 self.items_tree.insert("", tk.END, values=(name, qty, f"₹{float(price):.2f}", f"₹{float(total):.2f}"))
 
         except Exception as e:
-            print(f"[ERROR] Load chi tiết lỗi: {e}")
-            messagebox.showerror("Error", f"Load failed: {e}")
+            messagebox.showerror("Error", f"Load details failed: {e}")
         finally:
             cursor.close()
             conn.close()
@@ -331,7 +314,7 @@ class SalesManagement:
             self.stats_labels["Total Invoices"].config(text=str(count))
 
         except Exception as e:
-            print(f"[ERROR] Stats lỗi: {e}")
+            messagebox.showerror("Error", f"Statistics error: {e}")
         finally:
             cursor.close()
             conn.close()
@@ -357,7 +340,7 @@ class SalesManagement:
             sales = cursor.fetchall()
             total = sum(float(row[3]) for row in sales)
 
-            file_path = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text Files", "*.txt")])
+            file_path = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text Files", "*.txt")], title="Save Report")
             if not file_path:
                 return
 
@@ -378,7 +361,6 @@ class SalesManagement:
             messagebox.showinfo("Success", f"Report saved:\n{file_path}")
 
         except Exception as e:
-            print(f"[ERROR] Export lỗi: {e}")
             messagebox.showerror("Error", f"Export failed: {e}")
         finally:
             if 'cursor' in locals():

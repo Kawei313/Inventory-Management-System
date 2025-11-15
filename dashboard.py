@@ -18,7 +18,7 @@ from tkinter import messagebox
 
 def connect_database():
   try:
-    connection=pymysql.connect(host="localhost", user="root", password="@Bach2004")
+    connection=pymysql.connect(host="localhost", user="root", password="123456")
     cursor = connection.cursor()
   except:
     messagebox.showerror("Error", "Database connectivity issue try again")
@@ -110,8 +110,11 @@ product_button = Button(leftFrame,image=product_icon, compound=LEFT, text="  Pro
 product_button.pack(fill=X)
 
 sales_icon = PhotoImage(file=r"helpers/icons/sales.png")
+from sales import sales_form  # Thêm dòng này vào đầu file
+
 sales_button = Button(leftFrame, image=sales_icon, compound=LEFT, text="  Sales",
-                      font=("Times New Roman", 20, "bold"), cursor="hand2", anchor="w")
+                      font=("Times New Roman", 20, "bold"), cursor="hand2", anchor="w",
+                      command=lambda: sales_form(window))
 sales_button.pack(fill=X)
 
 tax_icon = PhotoImage(file=r"helpers/icons/product.png")

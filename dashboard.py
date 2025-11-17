@@ -17,7 +17,7 @@ from datetime import datetime
 
 def connect_database():
     try:
-        connection = pymysql.connect(host="localhost", user="root", password="123456")
+        connection = pymysql.connect(host="localhost", user="root", password="Viet20112004@") # Sửa lai account cho đúng
         cursor = connection.cursor()
     except:
         messagebox.showerror("Error", "Database connectivity issue try again")
@@ -122,7 +122,8 @@ exit_button = Button(leftFrame, image=exit_icon, compound=LEFT, text="  Exit",
 exit_button.pack(fill=X)
 
 # --- VÙNG NỘI DUNG BÊN PHẢI ---
-content_frame = Frame(window, bg="white")
+# content_frame = Frame(window, bg="white")
+content_frame = None
 # Không pack/place ở đây
 
 # --- TẤT CẢ TOTAL FRAMES (giữ nguyên như cũ) ---
@@ -174,18 +175,36 @@ Label(sales_frame, text="Total Sales", font=("Times New Roman", 15, "bold"), bg=
 total_sales_count_label = Label(sales_frame, text="0", font=("Times New Roman", 30, "bold"), bg="#6D3CE7", fg="white")
 total_sales_count_label.pack()
 for w in (sales_frame, sales_frame.winfo_children()[0], sales_frame.winfo_children()[1], total_sales_count_label):
-    w.bind("<Button-1>", lambda e: tax_form(window))
+    w.bind("<Button-1>", lambda e: open_sales())
 
 # Danh sách để ẩn/hiện
 total_frames = [emp_frame, sup_frame, cat_frame, prod_frame, sales_frame]
 
 # --- MỞ SALES ---
+# def open_sales():
+#     for f in total_frames:
+#         f.place_forget()
+#     content_frame.place(x=200, y=102, width=1070, height=555)
+#     sales_form(content_frame, show_dashboard)
+
+# --- MỞ SALES ---
 def open_sales():
+    global content_frame
+
+    # Ẩn tất cả total frames
     for f in total_frames:
         f.place_forget()
-    content_frame.place(x=200, y=102, width=1070, height=555)
-    sales_form(content_frame, show_dashboard)
 
+    # Hủy content_frame cũ nếu tồn tại
+    if content_frame is not None:
+        content_frame.destroy()
+
+    # Tạo content_frame mới
+    content_frame = Frame(window, bg="white")
+    content_frame.place(x=200, y=102, width=1070, height=555)
+
+    # Gọi sales_form
+    sales_form(content_frame, show_dashboard)
 # --- QUAY LẠI DASHBOARD ---
 def show_dashboard():
     content_frame.place_forget()
